@@ -1,142 +1,134 @@
 import io
 from datetime import date, datetime
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 
 # ---------------------------------------------------------
 # Page Configuration
 # ---------------------------------------------------------
 st.set_page_config(
-    page_title="Bostone Digital - Enterprise SaaS",
-    page_icon="💼",
+    page_title="Bostone Digital - Enterprise ERP & SaaS",
+    page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 # ---------------------------------------------------------
-# Custom Modern SaaS UI CSS (Matches Screenshot Design)
+# Ultra-Professional Enterprise Dark Theme CSS
 # ---------------------------------------------------------
 st.markdown(
     """
 <style>
-    /* Main Theme Variables & Styles */
-    :root {
-        --primary-blue: #2563EB;
-        --sidebar-bg: #0B132B;
-        --card-bg: #FFFFFF;
+    /* Global Page Styling */
+    .stApp {
+        background-color: #0B0F17;
+        color: #E2E8F0;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
     
-    /* Sidebar Styling */
+    /* Sidebar Customization */
     [data-testid="stSidebar"] {
-        background-color: #0F172A !important;
+        background-color: #070A10 !important;
         border-right: 1px solid #1E293B;
     }
     [data-testid="stSidebar"] * {
         color: #94A3B8 !important;
     }
     [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 {
-        color: #FFFFFF !important;
+        color: #F8FAFC !important;
     }
     
-    /* Metric Cards Styling */
+    /* Modern Glassmorphic Metric Cards */
     .metric-card {
-        background: #FFFFFF;
-        border: 1px solid #E2E8F0;
-        border-radius: 12px;
-        padding: 18px 20px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        margin-bottom: 15px;
+        background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 22px 24px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(12px);
+        transition: all 0.3s ease;
+    }
+    .metric-card:hover {
+        border-color: rgba(37, 99, 235, 0.4);
+        transform: translateY(-2px);
     }
     .metric-title {
-        font-size: 0.82rem;
-        font-weight: 600;
+        font-size: 0.75rem;
+        font-weight: 700;
         color: #64748B;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 1.2px;
     }
     .metric-value {
-        font-size: 1.8rem;
+        font-size: 2rem;
         font-weight: 800;
-        color: #0F172A;
-        margin: 4px 0;
+        color: #F8FAFC;
+        margin: 8px 0 4px 0;
+        letter-spacing: -0.5px;
     }
     .metric-sub {
-        font-size: 0.78rem;
+        font-size: 0.8rem;
         font-weight: 600;
     }
-    .text-green { color: #16A34A; }
-    .text-orange { color: #EA580C; }
-    .text-blue { color: #2563EB; }
+    .text-green { color: #10B981; }
+    .text-red { color: #EF4444; }
+    .text-blue { color: #3B82F6; }
+    .text-purple { color: #8B5CF6; }
     
-    /* Guide / Instruction Box Styling */
+    /* Guide / Alert Banner */
     .guide-box {
-        background-color: #F0F9FF;
-        border-left: 4px solid #0284C7;
-        border-radius: 8px;
+        background: linear-gradient(90deg, rgba(14, 165, 233, 0.1) 0%, rgba(15, 23, 42, 0.6) 100%);
+        border-left: 4px solid #0EA5E9;
+        border-radius: 12px;
         padding: 16px 20px;
         margin-bottom: 25px;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     }
     .guide-title {
-        font-size: 1rem;
+        font-size: 0.95rem;
         font-weight: 700;
-        color: #0369A1;
-        margin-bottom: 6px;
+        color: #38BDF8;
+        margin-bottom: 4px;
         display: flex;
         align-items: center;
         gap: 8px;
     }
     .guide-text {
-        font-size: 0.88rem;
-        color: #334155;
+        font-size: 0.85rem;
+        color: #94A3B8;
         line-height: 1.5;
     }
-    
-    /* Custom Badges */
+
+    /* Custom Status Badges */
     .badge-active {
-        background-color: #DCFCE7;
-        color: #15803D;
-        padding: 4px 10px;
+        background-color: rgba(16, 185, 129, 0.15);
+        color: #34D399;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        padding: 4px 12px;
         border-radius: 20px;
         font-weight: 700;
         font-size: 0.75rem;
     }
     .badge-expired {
-        background-color: #FEE2E2;
-        color: #B91C1C;
-        padding: 4px 10px;
+        background-color: rgba(239, 68, 68, 0.15);
+        color: #F87171;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        padding: 4px 12px;
         border-radius: 20px;
         font-weight: 700;
         font-size: 0.75rem;
     }
-    .badge-warning {
-        background-color: #FFEDD5;
-        color: #C2410C;
-        padding: 4px 10px;
-        border-radius: 20px;
-        font-weight: 700;
-        font-size: 0.75rem;
-    }
-    
-    /* User Profile Sidebar Widget */
-    .user-profile {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 12px;
-        background: #1E293B;
-        border-radius: 10px;
-        margin-top: 20px;
-    }
-    .avatar {
-        width: 38px;
-        height: 38px;
-        border-radius: 50%;
-        background-color: #2563EB;
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
+
+    /* Input Field Overrides for Dark Mode */
+    .stTextInput > div > div > input, .stSelectbox > div > div, .stNumberInput > div > div > input {
+        background-color: #0F172A !important;
+        color: #F8FAFC !important;
+        border-color: #334155 !important;
+        border-radius: 8px !important;
     }
 </style>
 """,
@@ -144,15 +136,29 @@ st.markdown(
 )
 
 # ---------------------------------------------------------
-# Session State Initialization (Empty Defaults - No hardcoded names)
+# Plotly Global Dark Template Setup
+# ---------------------------------------------------------
+def apply_chart_theme(fig):
+    fig.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#94A3B8", family="Inter, sans-serif"),
+        margin=dict(t=30, b=30, l=20, r=20),
+        legend=dict(font=dict(color="#E2E8F0")),
+        xaxis=dict(gridcolor="#1E293B", zerolinecolor="#1E293B"),
+        yaxis=dict(gridcolor="#1E293B", zerolinecolor="#1E293B"),
+    )
+    return fig
+
+# ---------------------------------------------------------
+# Session State Initialization
 # ---------------------------------------------------------
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
 if "currency" not in st.session_state:
-    st.session_state.currency = "MGA (Malagasy Ariary)"
+    st.session_state.currency = "MGA (Ariary Malgache)"
 
-# Data tables started empty or clean for real usage
 if "clients" not in st.session_state:
     st.session_state.clients = []
 
@@ -162,18 +168,14 @@ if "finances" not in st.session_state:
 if "tasks" not in st.session_state:
     st.session_state.tasks = []
 
-if "activity_logs" not in st.session_state:
-    st.session_state.activity_logs = []
-
 # ---------------------------------------------------------
 # Currency Conversion Setup
 # ---------------------------------------------------------
 CURRENCY_RATES = {
-    "MGA (Malagasy Ariary)": {"symbol": "Ar ", "rate": 1.0},
-    "USD ($)": {"symbol": "$", "rate": 1 / 4500.0},
-    "EUR (€)": {"symbol": "€", "rate": 0.92 / 4500.0},
+    "MGA (Ariary Malgache)": {"symbol": "Ar ", "rate": 1.0},
+    "USD ($)": {"symbol": "$ ", "rate": 1 / 4500.0},
+    "EUR (€)": {"symbol": "€ ", "rate": 0.92 / 4500.0},
 }
-
 
 def fmt_amt(val):
     curr_key = st.session_state.currency
@@ -181,98 +183,91 @@ def fmt_amt(val):
     converted = val * info["rate"]
     return f"{info['symbol']}{converted:,.0f}" if info["symbol"] == "Ar " else f"{info['symbol']}{converted:,.2f}"
 
-
 # ---------------------------------------------------------
-# Authentication Guard (Lock Screen)
+# Authentication Screen
 # ---------------------------------------------------------
 def login_screen():
-    st.markdown("## 🔒 Bostone Digital - Fidirana Azo Antoka")
-    col1, col2, col3 = st.columns([1, 2, 1])
+    st.markdown("<h2 style='text-align: center; color: #F8FAFC; margin-top: 50px;'>🔒 Bostone Digital — Connexion Enterprise</h2>", unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1, 1.2, 1])
     with col2:
         with st.form("login_form"):
-            username = st.text_input("Anarana fidirana (Username)")
-            password = st.text_input("Teny miafina (Password)", type="password")
-            submit = st.form_submit_button("Midira")
+            username = st.text_input("Identifiant")
+            password = st.text_input("Mot de passe", type="password")
+            submit = st.form_submit_button("Se connecter", use_container_width=True)
 
             if submit:
                 if username == "admin" and password == "bostone2026":
                     st.session_state.authenticated = True
-                    st.success("Tafiditra soa aman-tsara!")
+                    st.success("Authentification réussie !")
                     st.rerun()
                 else:
-                    st.error("Tsy mety ny anarana na teny miafina (Default: admin / bostone2026)")
-
+                    st.error("Identifiants incorrects (Par défaut: admin / bostone2026)")
 
 if not st.session_state.authenticated:
     login_screen()
     st.stop()
 
 # ---------------------------------------------------------
-# Sidebar Controls & Navigation
+# Sidebar Navigation
 # ---------------------------------------------------------
 st.sidebar.markdown("### ⚡ BOSTONE DIGITAL")
-st.sidebar.caption("Sistema Fitantanana Mpanjifa sy Famandrihana")
+st.sidebar.caption("Enterprise Resource Planning & SaaS")
 
-if st.sidebar.button("🔒 Handidy ny session (Lock)"):
+if st.sidebar.button("🔒 Déconnexion", use_container_width=True):
     st.session_state.authenticated = False
     st.rerun()
 
 st.sidebar.markdown("---")
 
-# Currency Selector
-st.sidebar.subheader("💱 Volana Hampiasaina")
+st.sidebar.subheader("💱 Devise d'affichage")
 st.session_state.currency = st.sidebar.selectbox(
-    "Safidio ny vola", list(CURRENCY_RATES.keys()), index=0
+    "Sélectionner la devise", list(CURRENCY_RATES.keys()), index=0
 )
 
 st.sidebar.markdown("---")
 
 menu = st.sidebar.radio(
-    "Fikarohana sy Sakelidany",
+    "Navigation Principale",
     [
-        "01. Dashboard Valopy",
-        "02. Fitantanana Mpanjifa (Clients)",
-        "03. Famandrihana (Subscriptions)",
-        "04. Fitantanana Bola (Finances)",
-        "05. Tasy sy Asa Ekipa (Tasks)",
-        "06. Tatitra sy Famoahana (Reports)",
+        "01. Tableau de bord",
+        "02. Gestion des Clients",
+        "03. Abonnements",
+        "04. Comptabilité & Finances",
+        "05. Tâches & Équipe",
+        "06. Rapports & Analytics",
     ],
 )
 
 st.sidebar.markdown("---")
-# User Profile Component at Sidebar Bottom
 st.sidebar.markdown(
     """
-    <div style="padding: 10px; background-color: #1E293B; border-radius: 8px;">
-        <p style="margin: 0; font-weight: bold; color: white;">👤 Admin User</p>
-        <p style="margin: 0; font-size: 0.75rem; color: #94A3B8;">Mpampiasa lehibe</p>
+    <div style="padding: 12px; background-color: #0F172A; border-radius: 10px; border: 1px solid #1E293B;">
+        <p style="margin: 0; font-weight: bold; color: #F8FAFC;">👤 Administrateur</p>
+        <p style="margin: 0; font-size: 0.75rem; color: #38BDF8;">Compte Super-Admin</p>
     </div>
 """,
     unsafe_allow_html=True,
 )
 
-
 def convert_df_to_excel(df):
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
-        df.to_excel(writer, index=False, sheet_name="Data")
+        df.to_excel(writer, index=False, sheet_name="Export")
     return output.getvalue()
 
-
 # ---------------------------------------------------------
-# View 1: Executive Dashboard
+# View 1: Executive Dashboard with Dynamic Charts
 # ---------------------------------------------------------
-if menu == "01. Dashboard Valopy":
-    st.title("📊 Executive Dashboard")
-    st.caption("Jery todika amin'ny fotoana tena izy momba ny mpanjifa, fidiram-bola sy ny asa.")
+if menu == "01. Tableau de bord":
+    st.title("📊 Tableau de Bord Exécutif")
+    st.caption("Analyse décisionnelle et visualisations graphiques en temps réel.")
 
-    # Guide Section
     st.markdown(
         """
         <div class="guide-box">
-            <div class="guide-title">💡 Torolàlana momba ny Dashboard</div>
+            <div class="guide-title">💡 Vue d'ensemble du Système</div>
             <div class="guide-text">
-                Kitiho ity pejy ity raha hijery ny famintinana lehibe: ny isan'ny mpanjifa mavitrika, ny fidiram-bola manontolo, sy ny daty efa akaiky ho lany amin'ny famandrihana. Azonao atao ny manavao na manalava ny famandrihana avy hatrany eto.
+                Ce tableau de bord centralise l'analyse financière, l'état de la clientèle et la santé opérationnelle de votre entreprise.
             </div>
         </div>
         """,
@@ -283,98 +278,120 @@ if menu == "01. Dashboard Valopy":
     df_finances = pd.DataFrame(st.session_state.finances)
 
     total_clients = len(df_clients)
-    active_subs = len(df_clients[df_clients["status"] == "Mavitrika"]) if not df_clients.empty else 0
-    total_income = df_finances[df_finances["type"] == "Fidiram-bola"]["amount"].sum() if not df_finances.empty else 0
-    total_expenses = df_finances[df_finances["type"] == "Fivoaham-bola"]["amount"].sum() if not df_finances.empty else 0
+    active_subs = len(df_clients[df_clients["status"] == "Actif"]) if not df_clients.empty else 0
+    total_income = df_finances[df_finances["type"] == "Revenu"]["amount"].sum() if not df_finances.empty else 0
+    total_expenses = df_finances[df_finances["type"] == "Dépense"]["amount"].sum() if not df_finances.empty else 0
     net_profit = total_income - total_expenses
 
-    # Metric Cards Top Row
+    # Metric Cards Row
     c1, c2, c3, c4 = st.columns(4)
     with c1:
         st.markdown(f"""
             <div class="metric-card">
-                <div class="metric-title">Mpanjifa Mavitrika</div>
+                <div class="metric-title">Portefeuille Clients</div>
                 <div class="metric-value">{total_clients}</div>
-                <div class="metric-sub text-green">Mpanjifa voasoratra</div>
+                <div class="metric-sub text-blue">Comptes enregistrés</div>
             </div>
         """, unsafe_allow_html=True)
     with c2:
         st.markdown(f"""
             <div class="metric-card">
-                <div class="metric-title">Famandrihana Mandeha</div>
+                <div class="metric-title">Abonnements Actifs</div>
                 <div class="metric-value">{active_subs}</div>
-                <div class="metric-sub text-blue">Ahitana fidiram-bola</div>
+                <div class="metric-sub text-green">Actuellement en cours</div>
             </div>
         """, unsafe_allow_html=True)
     with c3:
         st.markdown(f"""
             <div class="metric-card">
-                <div class="metric-title">Akaiky Ho Lany (≤ 7 Andro)</div>
-                <div class="metric-value">0</div>
-                <div class="metric-sub text-orange">Mila fanavaozana</div>
+                <div class="metric-title">Chiffre d'Affaires</div>
+                <div class="metric-value">{fmt_amt(total_income)}</div>
+                <div class="metric-sub text-purple">Total des encaissements</div>
             </div>
         """, unsafe_allow_html=True)
     with c4:
         st.markdown(f"""
             <div class="metric-card">
-                <div class="metric-title">Tombony Madio (Net Profit)</div>
+                <div class="metric-title">Bénéfice Net</div>
                 <div class="metric-value">{fmt_amt(net_profit)}</div>
-                <div class="metric-sub text-green">Fidirana - Fivoahana</div>
+                <div class="metric-sub {'text-green' if net_profit >= 0 else 'text-red'}">Résultat courant</div>
             </div>
         """, unsafe_allow_html=True)
 
-    col_left, col_right = st.columns([1.5, 1])
+    st.markdown("<br>", unsafe_allow_html=True)
 
-    with col_left:
-        st.subheader("🔔 Famandrihana Akaiky Ho Lany")
+    # Dynamic Live Visualizations
+    st.subheader("📈 Graphiques & Analytics Dynamiques")
+    col_chart1, col_chart2 = st.columns(2)
+
+    with col_chart1:
+        st.markdown("##### 🍩 Répartition des Revenus par Service")
         if not df_clients.empty:
-            st.dataframe(df_clients[["name", "service", "status", "expiry_date"]], use_container_width=True)
+            service_counts = df_clients.groupby("service")["amount"].sum().reset_index()
+            fig_donut = px.pie(
+                service_counts,
+                values="amount",
+                names="service",
+                hole=0.55,
+                color_discrete_sequence=px.colors.qualitative.Pastel
+            )
+            fig_donut.update_traces(textposition='inside', textinfo='percent+label')
+            st.plotly_chart(apply_chart_theme(fig_donut), use_container_width=True)
         else:
-            st.info("Mbola tsy misy mpanjifa voasoratra amin'izao fotoana izao. Mampidira mpanjifa ao amin'ny pejy 'Fitantanana Mpanjifa'.")
+            st.info("Aucune donnée disponible pour construire le graphique des services.")
 
-    with col_right:
-        st.subheader("📈 Jery Todika Ara-bola")
-        st.metric("Fidiram-bola Manontolo", fmt_amt(total_income))
-        st.metric("Fivoaham-bola Manontolo", fmt_amt(total_expenses))
+    with col_chart2:
+        st.markdown("##### 📊 Flux de Trésorerie (Entrées vs Sorties)")
+        if not df_finances.empty:
+            df_finances["date"] = pd.to_datetime(df_finances["date"])
+            fin_summary = df_finances.groupby(["date", "type"])["amount"].sum().reset_index()
+            fig_bar = px.bar(
+                fin_summary,
+                x="date",
+                y="amount",
+                color="type",
+                barmode="group",
+                color_discrete_map={"Revenu": "#10B981", "Dépense": "#EF4444"}
+            )
+            st.plotly_chart(apply_chart_theme(fig_bar), use_container_width=True)
+        else:
+            st.info("Aucune transaction enregistrée pour afficher le flux de trésorerie.")
 
 # ---------------------------------------------------------
 # View 2: Clients Management
 # ---------------------------------------------------------
-elif menu == "02. Fitantanana Mpanjifa (Clients)":
-    st.title("👤 Fitantanana ny Mpanjifa")
-    st.caption("Fandaminana sy fampidirana ny mombamomba ny mpanjifa rehetra.")
+elif menu == "02. Gestion des Clients":
+    st.title("👤 Fitantanana ny Mpanjifa / Clients")
+    st.caption("Registre central des clients et souscriptions de services.")
 
-    # Dedicated Guide Box
     st.markdown(
         """
         <div class="guide-box">
-            <div class="guide-title">📘 Torolàlana amin'ny Fampidirana Mpanjifa</div>
+            <div class="guide-title">📘 Guide Client</div>
             <div class="guide-text">
-                Ny fizarana eto dia natao hampidirana mpanjifa vaovao. 
-                Fill-o amin'ny alalan'ny bokotra <b>"➕ Mampidira Mpanjifa Vaovao"</b> eto ambany ny anarana, finday, adiresy, ary ny serivisy ilainy. 
-                Aza adino ny mametraka ny daty hahaperan'ny famandrihana mba hahafahana manara-maso izany ara-potoana.
+                Remplissez les champs ci-dessous pour ajouter un client. La date d'échéance permet d'assurer un suivi automatisé du renouvellement.
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    with st.expander("➕ Mampidira Mpanjifa Vaovao", expanded=False):
+    with st.expander("➕ Enregistrer un Nouveau Client", expanded=False):
         with st.form("add_client_form"):
             c1, c2 = st.columns(2)
             with c1:
-                c_name = st.text_input("Anarana sy Fanampiny / Anaran'ny Kompania")
-                c_phone = st.text_input("Laharana Telefona (oh: 034 12 345 67)")
-                c_email = st.text_input("E-mail na Kaonty")
+                c_name = st.text_input("Nom du Client / Entreprise")
+                c_phone = st.text_input("Numéro Téléphone")
+                c_email = st.text_input("Adresse Email")
             with c2:
-                c_address = st.text_input("Adiresy (Tanàna, Faritra)")
-                c_service = st.selectbox("Serivisy / Tolotra", ["ChatGPT Plus", "Netflix Premium", "Canva Pro", "YouTube Premium", "Spotify Premium", "Web Hosting", "Maha-manokana (Custom)"])
-                c_amount = st.number_input("Sarany isam-bolana (Ar)", min_value=0.0, step=5000.0)
-                c_expiry = st.date_input("Daty Hahaperan'ny Famandrihana", date.today())
+                c_address = st.text_input("Adresse / Localisation")
+                c_service = st.selectbox("Service souscrit", ["ChatGPT Plus", "Netflix Premium", "Canva Pro", "YouTube Premium", "Spotify Premium", "Hébergement Web", "Sur Mesure"])
+                c_amount = st.number_input("Montant mensuel (Ar)", min_value=0.0, step=5000.0)
+                c_expiry = st.date_input("Date d'expiration", date.today())
 
-            if st.form_submit_button("💾 Hadio sy Tehirizo ny Mpanjifa"):
+            if st.form_submit_button("💾 Sauvegarder le Client", use_container_width=True):
                 if c_name:
-                    new_id = f"C{len(st.session_state.clients)+1:04d}"
+                    new_id = f"CL-{len(st.session_state.clients)+1:04d}"
                     st.session_state.clients.append({
                         "id": new_id,
                         "name": c_name,
@@ -383,89 +400,82 @@ elif menu == "02. Fitantanana Mpanjifa (Clients)":
                         "address": c_address,
                         "service": c_service,
                         "amount": c_amount,
-                        "status": "Mavitrika",
+                        "status": "Actif",
                         "expiry_date": str(c_expiry),
                     })
-                    st.success(f"Tafiditra soa aman-tsara ny mpanjifa '{c_name}'!")
+                    st.success(f"Client '{c_name}' enregistré avec succès !")
                     st.rerun()
                 else:
-                    st.warning("Ampidiro ny anaran'ny mpanjifa azafady.")
+                    st.warning("Le nom du client est obligatoire.")
 
-    st.subheader("📋 Lisitry ny Mpanjifa Rehetra")
+    st.subheader("📋 Liste des Clients")
     if st.session_state.clients:
         df_clients = pd.DataFrame(st.session_state.clients)
         df_display = df_clients.copy()
         df_display["amount"] = df_display["amount"].apply(fmt_amt)
         st.dataframe(df_display, use_container_width=True)
     else:
-        st.info("Mbola banga ny lisitra. Kitiho ny '➕ Mampidira Mpanjifa Vaovao' eo ambony mba hampidirana.")
+        st.info("Aucun client enregistré pour l'instant.")
 
 # ---------------------------------------------------------
 # View 3: Subscriptions
 # ---------------------------------------------------------
-elif menu == "03. Famandrihana (Subscriptions)":
-    st.title("🔄 Fitantanana ny Famandrihana")
-    st.caption("Fanta-daza sy fanaraha-maso ny toetoetran'ny famandrihana tsirairay.")
-
-    st.markdown(
-        """
-        <div class="guide-box">
-            <div class="guide-title">📘 Torolàlana amin'ny Famandrihana</div>
-            <div class="guide-text">
-                Eto no hitantanana ny fanavaozana (renewal) sy ny fomba fandoavan-tsoratry ny mpanjifa (MVola, Orange Money, Cash...). Azonao ovaina ho "Lany" na "Mavitrika" ny toetoetran'ny famandrihana amin'ny alalan'ny fipihana ny bokotra eo anilany.
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+elif menu == "03. Abonnements":
+    st.title("🔄 Gestion des Abonnements")
+    st.caption("Contrôle dynamique des statuts d'abonnement et renouvellements.")
 
     if st.session_state.clients:
-        for idx, client in enumerate(st.session_state.clients):
-            with st.container():
-                c1, c2, c3, c4, c5 = st.columns([2, 2, 2, 1.5, 1.5])
-                c1.write(f"**{client['name']}**\n{client.get('phone', '')}")
-                c2.write(f"**{client['service']}**\n{fmt_amt(client['amount'])}")
-                c3.write(f"Daty hahapera:\n`{client['expiry_date']}`")
-                
-                status_color = "badge-active" if client["status"] == "Mavitrika" else "badge-expired"
-                c4.markdown(f"<span class='{status_color}'>{client['status']}</span>", unsafe_allow_html=True)
+        df_clients = pd.DataFrame(st.session_state.clients)
+        col_sub_chart, col_sub_list = st.columns([1, 1.5])
 
-                if c5.button("Ovay Statut", key=f"sub_btn_{idx}"):
-                    st.session_state.clients[idx]["status"] = "Lany" if client["status"] == "Mavitrika" else "Mavitrika"
-                    st.rerun()
-            st.divider()
+        with col_sub_chart:
+            st.markdown("##### 🥧 État Global des Abonnements")
+            status_counts = df_clients["status"].value_counts().reset_index()
+            fig_status = px.pie(
+                status_counts,
+                values="count",
+                names="status",
+                color="status",
+                color_discrete_map={"Actif": "#10B981", "Expiré": "#EF4444"},
+                hole=0.4
+            )
+            st.plotly_chart(apply_chart_theme(fig_status), use_container_width=True)
+
+        with col_sub_list:
+            st.markdown("##### ⚡ Action Rapide sur le Statut")
+            for idx, client in enumerate(st.session_state.clients):
+                with st.container():
+                    c1, c2, c3, c4 = st.columns([2, 2, 1.5, 1.5])
+                    c1.write(f"**{client['name']}**\n{client['service']}")
+                    c2.write(f"Tarif: {fmt_amt(client['amount'])}\nFin: `{client['expiry_date']}`")
+                    
+                    status_color = "badge-active" if client["status"] == "Actif" else "badge-expired"
+                    c3.markdown(f"<span class='{status_color}'>{client['status']}</span>", unsafe_allow_html=True)
+
+                    if c4.button("Basculer", key=f"sub_btn_{idx}"):
+                        st.session_state.clients[idx]["status"] = "Expiré" if client["status"] == "Actif" else "Actif"
+                        st.rerun()
+                st.divider()
     else:
-        st.info("Mbola tsy misy famandrihana voasoratra.")
+        st.info("Aucun abonnement en cours d'enregistrement.")
 
 # ---------------------------------------------------------
 # View 4: Finance Ledger
 # ---------------------------------------------------------
-elif menu == "04. Fitantanana Bola (Finances)":
-    st.title("💰 Bokin'ny Fitantanana Bola")
-    st.caption("Fandraisana an-tsoratra ny fidiram-bola sy ny fivoaham-bola rehetra.")
+elif menu == "04. Comptabilité & Finances":
+    st.title("💰 Registre Financier & Comptabilité")
+    st.caption("Suivi précis des entrées et sorties de fonds.")
 
-    st.markdown(
-        """
-        <div class="guide-box">
-            <div class="guide-title">📘 Torolàlana amin'ny Fitantanana Bola</div>
-            <div class="guide-text">
-                Ampidiro eto ny fidiram-bola (Income) azo avy amin'ny mpanjifa sy ny fivoaham-bola (Expense) toy ny fandoavana serveur, internety, sns. Mba hahamora ny kajy ny tombony madio.
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    with st.expander("➕ Ampidiro Ny Tranzaktsiona Vaovao"):
+    with st.expander("➕ Enregistrer une Transaction Financiale"):
         with st.form("add_finance_form"):
-            f_date = st.date_input("Daty", date.today())
-            f_type = st.selectbox("Karazany", ["Fidiram-bola", "Fivoaham-bola"])
-            f_client = st.text_input("Mpanjifa / Mpamatsy (Vendor)", "N/A")
-            f_service = st.text_input("Serivisy / Antony", "ChatGPT / Server / etc.")
-            f_amount = st.number_input("Sora-bola (Ar)", min_value=0.0, step=1000.0)
-            f_method = st.selectbox("Fomba Fandoavana", ["MVola", "Orange Money", "Airtel Money", "Cash", "Virement"])
+            f_date = st.date_input("Date", date.today())
+            f_type = st.selectbox("Type d'opération", ["Revenu", "Dépense"])
+            f_client = st.text_input("Tiers / Partenaire", "N/A")
+            f_service = st.text_input("Motif", "Paiement abonnement / Frais serveur")
+            f_amount = st.number_input("Montant (Ar)", min_value=0.0, step=1000.0)
+            f_method = st.selectbox("Mode de Règlement", ["MVola", "Orange Money", "Airtel Money", "Espèces", "Virement"])
 
-            if st.form_submit_button("💾 Tehirizo ny Tranzaktsiona"):
+            if st.form_submit_button("💾 Valider l'opération", use_container_width=True):
                 st.session_state.finances.append({
                     "date": str(f_date),
                     "type": f_type,
@@ -474,7 +484,7 @@ elif menu == "04. Fitantanana Bola (Finances)":
                     "amount": f_amount,
                     "method": f_method,
                 })
-                st.success("Tafiditra ny tranzaktsiona ara-bola!")
+                st.success("Transaction ajoutée au journal comptable !")
                 st.rerun()
 
     if st.session_state.finances:
@@ -483,36 +493,24 @@ elif menu == "04. Fitantanana Bola (Finances)":
         df_display_f["amount"] = df_display_f["amount"].apply(fmt_amt)
         st.dataframe(df_display_f, use_container_width=True)
     else:
-        st.info("Mbola banga ny bokin'ny fitantanana bola.")
+        st.info("Le registre financier ne contient aucune donnée pour le moment.")
 
 # ---------------------------------------------------------
 # View 5: Team Tasks
 # ---------------------------------------------------------
-elif menu == "05. Tasy sy Asa Ekipa (Tasks)":
-    st.title("📌 Asa sy Tasy ho an'ny Ekipa")
-    st.caption("Fanaraha-maso ny asa tokony ataon'ny mpiasa sy ny fizotran'izany.")
+elif menu == "05. Tâches & Équipe":
+    st.title("📌 Gestion des Tâches & Équipe")
+    st.caption("Planification opérationnelle de l'équipe.")
 
-    st.markdown(
-        """
-        <div class="guide-box">
-            <div class="guide-title">📘 Torolàlana amin'ny Fitantanana Tasy</div>
-            <div class="guide-text">
-                Mametraha tasy (asa) vaovao ho an'ny mpikambana ao amin'ny ekipa, ampidiro ny laharam-pahamehana (High, Medium, Low) sy ny daty farany tokony hahavitana izany.
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    with st.expander("➕ Ampidiro Tasy Vaovao"):
+    with st.expander("➕ Assigner une nouvelle tâche"):
         with st.form("add_task_form"):
-            t_desc = st.text_input("Mombamomba ny Asa (Task Description)")
-            t_assignee = st.text_input("Omena an'i (Assigned To)", "Admin")
-            t_priority = st.selectbox("Laharam-pahamehana", ["Mavo (Medium)", "Mena (High)", "Maintso (Low)"])
-            t_status = st.selectbox("Toetoetra", ["Am-pikirakirana (In Progress)", "Andrasana (To Do)", "Vita (Completed)"])
-            t_due = st.date_input("Daty Farany (Due Date)", date.today())
+            t_desc = st.text_input("Intitulé de la tâche")
+            t_assignee = st.text_input("Assigné à", "Admin")
+            t_priority = st.selectbox("Priorité", ["Haute", "Moyenne", "Basse"])
+            t_status = st.selectbox("Statut", ["À faire", "En cours", "Terminée"])
+            t_due = st.date_input("Échéance", date.today())
 
-            if st.form_submit_button("💾 Ampidiro ny Tasy") and t_desc:
+            if st.form_submit_button("💾 Créer la tâche", use_container_width=True) and t_desc:
                 st.session_state.tasks.append({
                     "task": t_desc,
                     "assignee": t_assignee,
@@ -520,10 +518,66 @@ elif menu == "05. Tasy sy Asa Ekipa (Tasks)":
                     "status": t_status,
                     "due_date": str(t_due),
                 })
-                st.success("Tafiditra ny asa vaovao!")
+                st.success("Tâche enregistrée !")
                 st.rerun()
 
     if st.session_state.tasks:
-        st.dataframe(pd.DataFrame(st.session_state.tasks), use_container_width=True)
+        df_tasks = pd.DataFrame(st.session_state.tasks)
+        col_t1, col_t2 = st.columns([1, 1.5])
+        
+        with col_t1:
+            st.markdown("##### 📊 Statut des Tâches")
+            fig_task = px.bar(
+                df_tasks["status"].value_counts().reset_index(),
+                x="count",
+                y="status",
+                orientation="h",
+                color="status",
+                color_discrete_sequence=px.colors.qualitative.Dark24
+            )
+            st.plotly_chart(apply_chart_theme(fig_task), use_container_width=True)
+
+        with col_t2:
+            st.markdown("##### 📋 Liste des Tâches")
+            st.dataframe(df_tasks, use_container_width=True)
     else:
-        st.info("Mbola tsy misy tasy voasoratra.")
+        st.info("Aucune tâche attribuée pour le moment.")
+
+# ---------------------------------------------------------
+# View 6: Reports & Analytics
+# ---------------------------------------------------------
+elif menu == "06. Rapports & Analytics":
+    st.title("📄 Rapports & Exports de Données")
+    st.caption("Exportation des données au format Excel pour audit et sauvegarde.")
+
+    c_exp1, c_exp2 = st.columns(2)
+
+    with c_exp1:
+        st.markdown("### 📊 Export Clients")
+        if st.session_state.clients:
+            df_c = pd.DataFrame(st.session_state.clients)
+            excel_data_c = convert_df_to_excel(df_c)
+            st.download_button(
+                label="📥 Télécharger le registre Client (.xlsx)",
+                data=excel_data_c,
+                file_name=f"clients_bostone_{date.today()}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True
+            )
+        else:
+            st.warning("Aucune donnée client à exporter.")
+
+    with c_exp2:
+        st.markdown("### 💰 Export Financial")
+        if st.session_state.finances:
+            df_f = pd.DataFrame(st.session_state.finances)
+            excel_data_f = convert_df_to_excel(df_f)
+            st.download_button(
+                label="📥 Télécharger le registre Financier (.xlsx)",
+                data=excel_data_f,
+                file_name=f"finances_bostone_{date.today()}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True
+            )
+        else:
+            st.warning("Aucune donnée financière à exporter.")
