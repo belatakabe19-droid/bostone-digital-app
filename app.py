@@ -1,516 +1,307 @@
-import io
-from datetime import date, datetime
+import sqlite3
+from datetime import date
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 import streamlit as st
 
-# ---------------------------------------------------------
-# Page Configuration
-# ---------------------------------------------------------
+# 1. PAGE CONFIGURATION
 st.set_page_config(
-    page_title="Bostone Digital - Enterprise ERP & SaaS",
-    page_icon="⚡",
-    layout="wide",
-    initial_sidebar_state="expanded",
+    page_title="André Bostone",
+    page_icon="👑",
+    layout="wide"
 )
 
-# ---------------------------------------------------------
-# Ultra-Professional Enterprise Dark Theme CSS
-# ---------------------------------------------------------
-st.markdown(
-    """
+# 2. CUSTOM CSS STYLING
+st.markdown("""
 <style>
-    /* Global Page Styling */
-    .stApp {
-        background-color: #0B0F17;
-        color: #E2E8F0;
-        font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    }
-    
-    /* Sidebar Customization */
-    [data-testid="stSidebar"] {
-        background-color: #070A10 !important;
-        border-right: 1px solid #1E293B;
-    }
-    [data-testid="stSidebar"] * {
-        color: #94A3B8 !important;
-    }
-    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 {
-        color: #F8FAFC !important;
-    }
-    
-    /* Modern Glassmorphic Metric Cards */
-    .metric-card {
-        background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 16px;
-        padding: 22px 24px;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-        backdrop-filter: blur(12px);
-        transition: all 0.3s ease;
-    }
-    .metric-card:hover {
-        border-color: rgba(37, 99, 235, 0.4);
-        transform: translateY(-2px);
-    }
-    .metric-title {
-        font-size: 0.75rem;
-        font-weight: 700;
-        color: #64748B;
-        text-transform: uppercase;
-        letter-spacing: 1.2px;
-    }
-    .metric-value {
-        font-size: 2rem;
-        font-weight: 800;
-        color: #F8FAFC;
-        margin: 8px 0 4px 0;
-        letter-spacing: -0.5px;
-    }
-    .metric-sub {
-        font-size: 0.8rem;
-        font-weight: 600;
-    }
-    .text-green { color: #10B981; }
-    .text-red { color: #EF4444; }
-    .text-blue { color: #3B82F6; }
-    .text-purple { color: #8B5CF6; }
-    
-    /* Guide / Alert Banner */
-    .guide-box {
-        background: linear-gradient(90deg, rgba(14, 165, 233, 0.1) 0%, rgba(15, 23, 42, 0.6) 100%);
-        border-left: 4px solid #0EA5E9;
-        border-radius: 12px;
-        padding: 16px 20px;
-        margin-bottom: 25px;
-        border-top: 1px solid rgba(255, 255, 255, 0.05);
-        border-right: 1px solid rgba(255, 255, 255, 0.05);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    }
-    .guide-title {
-        font-size: 0.95rem;
-        font-weight: 700;
-        color: #38BDF8;
-        margin-bottom: 4px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    .guide-text {
-        font-size: 0.85rem;
-        color: #94A3B8;
-        line-height: 1.5;
-    }
-
-    /* Custom Status Badges */
-    .badge-active {
-        background-color: rgba(16, 185, 129, 0.15);
-        color: #34D399;
-        border: 1px solid rgba(16, 185, 129, 0.3);
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-weight: 700;
-        font-size: 0.75rem;
-    }
-    .badge-expired {
-        background-color: rgba(239, 68, 68, 0.15);
-        color: #F87171;
-        border: 1px solid rgba(239, 68, 68, 0.3);
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-weight: 700;
-        font-size: 0.75rem;
-    }
-
-    /* Input Field Overrides for Dark Mode */
-    .stTextInput > div > div > input, .stSelectbox > div > div, .stNumberInput > div > div > input {
-        background-color: #0F172A !important;
-        color: #F8FAFC !important;
-        border-color: #334155 !important;
-        border-radius: 8px !important;
-    }
-</style>
-""",
-    unsafe_allow_html=True,
-)
-
-# ---------------------------------------------------------
-# Plotly Global Dark Template Setup
-# ---------------------------------------------------------
-def apply_chart_theme(fig):
-    fig.update_layout(
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#94A3B8", family="Inter, sans-serif"),
-        margin=dict(t=30, b=30, l=20, r=20),
-        legend=dict(font=dict(color="#E2E8F0")),
-        xaxis=dict(gridcolor="#1E293B", zerolinecolor="#1E293B"),
-        yaxis=dict(gridcolor="#1E293B", zerolinecolor="#1E293B"),
-    )
-    return fig
-
-# ---------------------------------------------------------
-# Session State Initialization
-# ---------------------------------------------------------
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
-
-if "currency" not in st.session_state:
-    st.session_state.currency = "MGA (Ariary Malgache)"
-
-if "clients" not in st.session_state:
-    st.session_state.clients = []
-
-if "finances" not in st.session_state:
-    st.session_state.finances = []
-
-if "tasks" not in st.session_state:
-    st.session_state.tasks = []
-
-# ---------------------------------------------------------
-# Currency Conversion Setup
-# ---------------------------------------------------------
-CURRENCY_RATES = {
-    "MGA (Ariary Malgache)": {"symbol": "Ar ", "rate": 1.0},
-    "USD ($)": {"symbol": "$ ", "rate": 1 / 4500.0},
-    "EUR (€)": {"symbol": "€ ", "rate": 0.92 / 4500.0},
+.stApp {
+    background: #0B1220;
+    color: white;
 }
+[data-testid="stSidebar"] {
+    background: #111827;
+}
+div[data-testid="metric-container"] {
+    background: #1E293B;
+    border-radius: 15px;
+    padding: 20px;
+    border: 1px solid #374151;
+}
+.stButton>button {
+    width: 100%;
+    background: #2563EB;
+    color: white;
+    border-radius: 10px;
+    height: 45px;
+    border: none;
+}
+.stButton>button:hover {
+    background: #1D4ED8;
+}
+input {
+    border-radius: 10px !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
-def fmt_amt(val):
-    curr_key = st.session_state.currency
-    info = CURRENCY_RATES[curr_key]
-    converted = val * info["rate"]
-    return f"{info['symbol']}{converted:,.0f}" if info["symbol"] == "Ar " else f"{info['symbol']}{converted:,.2f}"
+# 3. DATABASE INITIALIZATION
+def init_db():
+    conn = sqlite3.connect("database.db", check_same_thread=False)
+    cur = conn.cursor()
+    
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS clients(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        phone TEXT,
+        email TEXT,
+        service TEXT,
+        amount REAL,
+        expiry TEXT
+    )
+    """)
+    
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS finances(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        trans_date TEXT,
+        trans_type TEXT,
+        description TEXT,
+        amount REAL
+    )
+    """)
+    
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS tasks(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        task TEXT,
+        assignee TEXT,
+        priority TEXT,
+        status TEXT,
+        due_date TEXT
+    )
+    """)
+    
+    conn.commit()
+    conn.close()
 
-# ---------------------------------------------------------
-# Authentication Screen
-# ---------------------------------------------------------
-def login_screen():
-    st.markdown("<h2 style='text-align: center; color: #F8FAFC; margin-top: 50px;'>🔒 Bostone Digital — Connexion Enterprise</h2>", unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([1, 1.2, 1])
-    with col2:
-        with st.form("login_form"):
-            username = st.text_input("Identifiant")
-            password = st.text_input("Mot de passe", type="password")
-            submit = st.form_submit_button("Se connecter", use_container_width=True)
+init_db()
 
-            if submit:
-                if username == "admin" and password == "bostone2026":
-                    st.session_state.authenticated = True
-                    st.success("Authentification réussie !")
-                    st.rerun()
-                else:
-                    st.error("Identifiants incorrects (Par défaut: admin / bostone2026)")
+def get_connection():
+    return sqlite3.connect("database.db", check_same_thread=False)
 
-if not st.session_state.authenticated:
-    login_screen()
+# 4. SESSION & LOGIN GUARD
+if "logged" not in st.session_state:
+    st.session_state.logged = False
+
+if not st.session_state.logged:
+    st.title("👑 André Bostone")
+    st.subheader("Gestion des Clients")
+    st.caption("Enterprise CRM • ERP • SaaS Platform")
+
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+
+    if st.button("Login"):
+        if username == "admin" and password == "bostone2026":
+            st.session_state.logged = True
+            st.rerun()
+        else:
+            st.error("Incorrect username or password.")
     st.stop()
 
-# ---------------------------------------------------------
-# Sidebar Navigation
-# ---------------------------------------------------------
-st.sidebar.markdown("### ⚡ BOSTONE DIGITAL")
-st.sidebar.caption("Enterprise Resource Planning & SaaS")
-
-if st.sidebar.button("🔒 Déconnexion", use_container_width=True):
-    st.session_state.authenticated = False
-    st.rerun()
-
-st.sidebar.markdown("---")
-
-st.sidebar.subheader("💱 Devise d'affichage")
-st.session_state.currency = st.sidebar.selectbox(
-    "Sélectionner la devise", list(CURRENCY_RATES.keys()), index=0
-)
-
-st.sidebar.markdown("---")
-
+# 5. NAVIGATION SIDEBAR
+st.sidebar.title("👑 André Bostone")
 menu = st.sidebar.radio(
-    "Navigation Principale",
-    [
-        "01. Tableau de bord",
-        "02. Gestion des Clients",
-        "03. Abonnements",
-        "04. Comptabilité & Finances",
-        "05. Tâches & Équipe",
-        "06. Rapports & Analytics",
-    ],
+    "Navigation",
+    ["Dashboard", "Clients", "Finance", "Tasks"]
 )
 
-st.sidebar.markdown("---")
-st.sidebar.markdown(
-    """
-    <div style="padding: 12px; background-color: #0F172A; border-radius: 10px; border: 1px solid #1E293B;">
-        <p style="margin: 0; font-weight: bold; color: #F8FAFC;">👤 Administrateur</p>
-        <p style="margin: 0; font-size: 0.75rem; color: #38BDF8;">Compte Super-Admin</p>
-    </div>
-""",
-    unsafe_allow_html=True,
-)
+conn = get_connection()
 
-def convert_df_to_excel(df):
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine="openpyxl") as writer:
-        df.to_excel(writer, index=False, sheet_name="Export")
-    return output.getvalue()
+# -----------------------------------------------------------------------------
+# MENU 1: DASHBOARD
+# -----------------------------------------------------------------------------
+if menu == "Dashboard":
+    st.title("📊 Executive Dashboard")
+    st.caption("Gestion des Clients • Enterprise CRM • ERP • SaaS")
+    st.divider()
 
-# ---------------------------------------------------------
-# View 1: Executive Dashboard with Dynamic Charts
-# ---------------------------------------------------------
-if menu == "01. Tableau de bord":
-    st.title("📊 Tableau de Bord Exécutif")
-    st.caption("Analyse décisionnelle et visualisations graphiques en temps réel.")
+    # Load Data
+    df_clients = pd.read_sql("SELECT * FROM clients", conn)
+    df_finances = pd.read_sql("SELECT * FROM finances", conn)
+    df_tasks = pd.read_sql("SELECT * FROM tasks", conn)
 
-    st.markdown(
-        """
-        <div class="guide-box">
-            <div class="guide-title">💡 Vue d'ensemble du Système</div>
-            <div class="guide-text">
-                Ce tableau de bord centralise l'analyse financière, l'état de la clientèle et la santé opérationnelle de votre entreprise.
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    # Calculations
+    client_count = len(df_clients)
+    income = df_finances[df_finances["trans_type"] == "Income"]["amount"].sum() if not df_finances.empty else 0.0
+    expense = df_finances[df_finances["trans_type"] == "Expense"]["amount"].sum() if not df_finances.empty else 0.0
+    profit = income - expense
 
-    df_clients = pd.DataFrame(st.session_state.clients)
-    df_finances = pd.DataFrame(st.session_state.finances)
-
-    total_clients = len(df_clients)
-    active_subs = len(df_clients[df_clients["status"] == "Actif"]) if not df_clients.empty else 0
-    total_income = df_finances[df_finances["type"] == "Revenu"]["amount"].sum() if not df_finances.empty else 0
-    total_expenses = df_finances[df_finances["type"] == "Dépense"]["amount"].sum() if not df_finances.empty else 0
-    net_profit = total_income - total_expenses
-
-    # Metric Cards Row
+    # Metrics
     c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-title">Portefeuille Clients</div>
-                <div class="metric-value">{total_clients}</div>
-                <div class="metric-sub text-blue">Comptes enregistrés</div>
-            </div>
-        """, unsafe_allow_html=True)
-    with c2:
-        st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-title">Abonnements Actifs</div>
-                <div class="metric-value">{active_subs}</div>
-                <div class="metric-sub text-green">Actuellement en cours</div>
-            </div>
-        """, unsafe_allow_html=True)
-    with c3:
-        st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-title">Chiffre d'Affaires</div>
-                <div class="metric-value">{fmt_amt(total_income)}</div>
-                <div class="metric-sub text-purple">Total des encaissements</div>
-            </div>
-        """, unsafe_allow_html=True)
-    with c4:
-        st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-title">Bénéfice Net</div>
-                <div class="metric-value">{fmt_amt(net_profit)}</div>
-                <div class="metric-sub {'text-green' if net_profit >= 0 else 'text-red'}">Résultat courant</div>
-            </div>
-        """, unsafe_allow_html=True)
+    c1.metric("👥 Clients", client_count)
+    c2.metric("💰 Income", f"${income:,.2f}")
+    c3.metric("💸 Expenses", f"${expense:,.2f}")
+    c4.metric("📈 Profit", f"${profit:,.2f}")
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.divider()
 
-    # Dynamic Live Visualizations
-    st.subheader("📈 Graphiques & Analytics Dynamiques")
-    col_chart1, col_chart2 = st.columns(2)
+    # Graph Income vs Expense
+    if not df_finances.empty:
+        chart_data = df_finances.groupby("trans_type")["amount"].sum().reset_index()
+        fig = px.bar(
+            chart_data,
+            x="trans_type",
+            y="amount",
+            color="trans_type",
+            title="Income vs Expense",
+            color_discrete_map={"Income": "#10B981", "Expense": "#EF4444"}
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
-    with col_chart1:
-        st.markdown("##### 🍩 Répartition des Revenus par Service")
-        if not df_clients.empty:
-            service_counts = df_clients.groupby("service")["amount"].sum().reset_index()
-            fig_donut = px.pie(
-                service_counts,
-                values="amount",
-                names="service",
-                hole=0.55,
-                color_discrete_sequence=px.colors.qualitative.Pastel
-            )
-            fig_donut.update_traces(textposition='inside', textinfo='percent+label')
-            st.plotly_chart(apply_chart_theme(fig_donut), use_container_width=True)
-        else:
-            st.info("Aucune donnée disponible pour construire le graphique des services.")
+# -----------------------------------------------------------------------------
+# MENU 2: CLIENTS
+# -----------------------------------------------------------------------------
+elif menu == "Clients":
+    st.title("👥 Gestion des Clients")
 
-    with col_chart2:
-        st.markdown("##### 📊 Flux de Trésorerie (Entrées vs Sorties)")
-        if not df_finances.empty:
-            df_finances["date"] = pd.to_datetime(df_finances["date"])
-            fin_summary = df_finances.groupby(["date", "type"])["amount"].sum().reset_index()
-            fig_bar = px.bar(
-                fin_summary,
-                x="date",
-                y="amount",
-                color="type",
-                barmode="group",
-                color_discrete_map={"Revenu": "#10B981", "Dépense": "#EF4444"}
-            )
-            st.plotly_chart(apply_chart_theme(fig_bar), use_container_width=True)
-        else:
-            st.info("Aucune transaction enregistrée pour afficher le flux de trésorerie.")
+    # Form Add Client
+    with st.form("client_form"):
+        name = st.text_input("Client Name")
+        phone = st.text_input("Phone")
+        email = st.text_input("Email")
+        service = st.selectbox(
+            "Service",
+            ["ChatGPT Plus", "Netflix Premium", "Canva Pro", "Spotify Premium", "YouTube Premium"]
+        )
+        amount = st.number_input("Monthly Amount ($)", min_value=0.0)
+        expiry = st.date_input("Expiry Date", date.today())
 
-# ---------------------------------------------------------
-# View 2: Clients Management
-# ---------------------------------------------------------
-elif menu == "02. Gestion des Clients":
-    st.title("👤 Fitantanana ny Mpanjifa / Clients")
-    st.caption("Registre central des clients et souscriptions de services.")
+        save = st.form_submit_button("💾 Save Client")
 
-    st.markdown(
-        """
-        <div class="guide-box">
-            <div class="guide-title">📘 Guide Client</div>
-            <div class="guide-text">
-                Remplissez les champs ci-dessous pour ajouter un client. La date d'échéance permet d'assurer un suivi automatisé du renouvellement.
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        if save:
+            cur = conn.cursor()
+            cur.execute("""
+            INSERT INTO clients (name, phone, email, service, amount, expiry)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """, (name, phone, email, service, amount, str(expiry)))
+            conn.commit()
+            st.success("Client saved successfully.")
+            st.rerun()
 
-    with st.expander("➕ Enregistrer un Nouveau Client", expanded=False):
-        with st.form("add_client_form"):
-            c1, c2 = st.columns(2)
-            with c1:
-                c_name = st.text_input("Nom du Client / Entreprise")
-                c_phone = st.text_input("Numéro Téléphone")
-                c_email = st.text_input("Adresse Email")
-            with c2:
-                c_address = st.text_input("Adresse / Localisation")
-                c_service = st.selectbox("Service souscrit", ["ChatGPT Plus", "Netflix Premium", "Canva Pro", "YouTube Premium", "Spotify Premium", "Hébergement Web", "Sur Mesure"])
-                c_amount = st.number_input("Montant mensuel (Ar)", min_value=0.0, step=5000.0)
-                c_expiry = st.date_input("Date d'expiration", date.today())
+    st.divider()
 
-            if st.form_submit_button("💾 Sauvegarder le Client", use_container_width=True):
-                if c_name:
-                    new_id = f"CL-{len(st.session_state.clients)+1:04d}"
-                    st.session_state.clients.append({
-                        "id": new_id,
-                        "name": c_name,
-                        "phone": c_phone,
-                        "email": c_email,
-                        "address": c_address,
-                        "service": c_service,
-                        "amount": c_amount,
-                        "status": "Actif",
-                        "expiry_date": str(c_expiry),
-                    })
-                    st.success(f"Client '{c_name}' enregistré avec succès !")
-                    st.rerun()
-                else:
-                    st.warning("Le nom du client est obligatoire.")
+    # Load & Search
+    df_clients = pd.read_sql("SELECT * FROM clients", conn)
 
-    st.subheader("📋 Liste des Clients")
-    if st.session_state.clients:
-        df_clients = pd.DataFrame(st.session_state.clients)
-        df_display = df_clients.copy()
-        df_display["amount"] = df_display["amount"].apply(fmt_amt)
-        st.dataframe(df_display, use_container_width=True)
+    # Expiry Check Warning
+    if not df_clients.empty:
+        today = pd.Timestamp.today().normalize()
+        df_clients["expiry_dt"] = pd.to_datetime(df_clients["expiry"], errors="coerce")
+        expired = df_clients[df_clients["expiry_dt"] < today]
+
+        if not expired.empty:
+            st.error(f"⚠ {len(expired)} subscription(s) expired.")
+
+    # Search Bar
+    search = st.text_input("🔍 Search Client")
+    filtered_df = df_clients.copy()
+    
+    if search and not filtered_df.empty:
+        filtered_df = filtered_df[filtered_df["name"].str.contains(search, case=False, na=False)]
+
+    # Display Data Table (ignoring temporary helper column)
+    if "expiry_dt" in filtered_df.columns:
+        display_df = filtered_df.drop(columns=["expiry_dt"])
     else:
-        st.info("Aucun client enregistré pour l'instant.")
+        display_df = filtered_df
 
-# ---------------------------------------------------------
-# View 3: Subscriptions
-# ---------------------------------------------------------
-elif menu == "03. Abonnements":
-    st.title("🔄 Gestion des Abonnements")
-    st.caption("Contrôle dynamique des statuts d'abonnement et renouvellements.")
+    st.dataframe(display_df, use_container_width=True)
 
-    if st.session_state.clients:
-        df_clients = pd.DataFrame(st.session_state.clients)
-        col_sub_chart, col_sub_list = st.columns([1, 1.5])
+    # Export CSV
+    if not display_df.empty:
+        st.download_button(
+            "📥 Export CSV",
+            display_df.to_csv(index=False),
+            "clients.csv",
+            "text/csv"
+        )
 
-        with col_sub_chart:
-            st.markdown("##### 🥧 État Global des Abonnements")
-            status_counts = df_clients["status"].value_counts().reset_index()
-            fig_status = px.pie(
-                status_counts,
-                values="count",
-                names="status",
-                color="status",
-                color_discrete_map={"Actif": "#10B981", "Expiré": "#EF4444"},
-                hole=0.4
-            )
-            st.plotly_chart(apply_chart_theme(fig_status), use_container_width=True)
+    # Delete Section
+    if not df_clients.empty:
+        delete_id = st.selectbox("Delete Client", df_clients["id"])
+        if st.button("🗑 Delete"):
+            cur = conn.cursor()
+            cur.execute("DELETE FROM clients WHERE id=?", (int(delete_id),))
+            conn.commit()
+            st.success("Client deleted.")
+            st.rerun()
 
-        with col_sub_list:
-            st.markdown("##### ⚡ Action Rapide sur le Statut")
-            for idx, client in enumerate(st.session_state.clients):
-                with st.container():
-                    c1, c2, c3, c4 = st.columns([2, 2, 1.5, 1.5])
-                    c1.write(f"**{client['name']}**\n{client['service']}")
-                    c2.write(f"Tarif: {fmt_amt(client['amount'])}\nFin: `{client['expiry_date']}`")
-                    
-                    status_color = "badge-active" if client["status"] == "Actif" else "badge-expired"
-                    c3.markdown(f"<span class='{status_color}'>{client['status']}</span>", unsafe_allow_html=True)
+# -----------------------------------------------------------------------------
+# MENU 3: FINANCE
+# -----------------------------------------------------------------------------
+elif menu == "Finance":
+    st.title("💰 Finance Management")
 
-                    if c4.button("Basculer", key=f"sub_btn_{idx}"):
-                        st.session_state.clients[idx]["status"] = "Expiré" if client["status"] == "Actif" else "Actif"
-                        st.rerun()
-                st.divider()
-    else:
-        st.info("Aucun abonnement en cours d'enregistrement.")
+    with st.form("finance_form"):
+        trans_date = st.date_input("Transaction Date", date.today())
+        trans_type = st.selectbox("Type", ["Income", "Expense"])
+        description = st.text_input("Description")
+        amount = st.number_input("Amount ($)", min_value=0.0, step=1.0)
 
-# ---------------------------------------------------------
-# View 4: Finance Ledger
-# ---------------------------------------------------------
-elif menu == "04. Comptabilité & Finances":
-    st.title("💰 Registre Financier & Comptabilité")
-    st.caption("Suivi précis des entrées et sorties de fonds.")
+        save = st.form_submit_button("💾 Save Transaction")
 
-    with st.expander("➕ Enregistrer une Transaction Financiale"):
-        with st.form("add_finance_form"):
-            f_date = st.date_input("Date", date.today())
-            f_type = st.selectbox("Type d'opération", ["Revenu", "Dépense"])
-            f_client = st.text_input("Tiers / Partenaire", "N/A")
-            f_service = st.text_input("Motif", "Paiement abonnement / Frais serveur")
-            f_amount = st.number_input("Montant (Ar)", min_value=0.0, step=1000.0)
-            f_method = st.selectbox("Mode de Règlement", ["MVola", "Orange Money", "Airtel Money", "Espèces", "Virement"])
+        if save:
+            cur = conn.cursor()
+            cur.execute("""
+            INSERT INTO finances (trans_date, trans_type, description, amount)
+            VALUES (?, ?, ?, ?)
+            """, (str(trans_date), trans_type, description, amount))
+            conn.commit()
+            st.success("Transaction saved successfully!")
+            st.rerun()
 
-            if st.form_submit_button("💾 Valider l'opération", use_container_width=True):
-                st.session_state.finances.append({
-                    "date": str(f_date),
-                    "type": f_type,
-                    "client": f_client,
-                    "service": f_service,
-                    "amount": f_amount,
-                    "method": f_method,
-                })
-                st.success("Transaction ajoutée au journal comptable !")
-                st.rerun()
+    st.divider()
 
-    if st.session_state.finances:
-        df_finances = pd.DataFrame(st.session_state.finances)
-        df_display_f = df_finances.copy()
-        df_display_f["amount"] = df_display_f["amount"].apply(fmt_amt)
-        st.dataframe(df_display_f, use_container_width=True)
-    else:
-        st.info("Le registre financier ne contient aucune donnée pour le moment.")
+    df_finances = pd.read_sql("SELECT * FROM finances ORDER BY id DESC", conn)
+    st.dataframe(df_finances, use_container_width=True)
 
-# ---------------------------------------------------------
-# View 5: Team Tasks
-# ---------------------------------------------------------
-elif menu == "05. Tâches & Équipe":
-    st.title("📌 Gestion des Tâches & Équipe")
-    st.caption("Planification opérationnelle de l'équipe.")
+    total_income = df_finances[df_finances["trans_type"] == "Income"]["amount"].sum() if not df_finances.empty else 0.0
+    total_expense = df_finances[df_finances["trans_type"] == "Expense"]["amount"].sum() if not df_finances.empty else 0.0
 
-    with st.expander("➕ Assigner une nouvelle tâche"):
-        with st.form("add_task_form"):
-            t_desc = st.text_input("Intitulé de la tâche")
-            t_assignee = st.text_input("Assigné à", "Admin")
-            t_priority = st.selectbox("Priorité", ["Haute", "Moyenne", "Basse"])
-            t_status = st.selectbox("Statut", ["À faire", "En cours", "Terminée"])
-            t_due = st.date_input("Échéance", date.today())
+    c1, c2 = st.columns(2)
+    c1.metric("💵 Total Income", f"${total_income:,.2f}")
+    c2.metric("💸 Total Expense", f"${total_expense:,.2f}")
 
-            if st.form_submit_button("💾 Créer la tâche", use_container_width=True) and t_desc:
-                st.session_state.tasks.append({
-                    "task": t_desc,
-               
+# -----------------------------------------------------------------------------
+# MENU 4: TASKS
+# -----------------------------------------------------------------------------
+elif menu == "Tasks":
+    st.title("📋 Task Management")
+
+    with st.form("task_form"):
+        task = st.text_input("Task")
+        assignee = st.text_input("Assigned To")
+        priority = st.selectbox("Priority", ["High", "Medium", "Low"])
+        status = st.selectbox("Status", ["Pending", "In Progress", "Completed"])
+        due_date = st.date_input("Due Date", date.today())
+
+        save = st.form_submit_button("💾 Save Task")
+
+        if save:
+            cur = conn.cursor()
+            cur.execute("""
+            INSERT INTO tasks (task, assignee, priority, status, due_date)
+            VALUES (?, ?, ?, ?, ?)
+            """, (task, assignee, priority, status, str(due_date)))
+            conn.commit()
+            st.success("Task saved successfully!")
+            st.rerun()
+
+    st.divider()
+
+    df_tasks = pd.read_sql("SELECT * FROM tasks ORDER BY id DESC", conn)
+    st.dataframe(df_tasks, use_container_width=True)
+
+conn.close()
