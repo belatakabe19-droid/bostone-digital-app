@@ -1,5 +1,4 @@
-```python
-code = """
+
 import io
 from datetime import date, datetime
 import pandas as pd
